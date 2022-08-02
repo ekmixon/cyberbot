@@ -10,10 +10,16 @@ def run(seed):
     except ValueError as ex:
         ip, port = seed, 27017
 
-    conn = pymongo.MongoClient(ip, int(port), connectTimeoutMS=2000,
-                               serverSelectionTimeoutMS=2000,
-                               maxPoolSize=1000, waitQueueMultiple=1000,
-                               connect=False)
+    conn = pymongo.MongoClient(
+        ip,
+        port,
+        connectTimeoutMS=2000,
+        serverSelectionTimeoutMS=2000,
+        maxPoolSize=1000,
+        waitQueueMultiple=1000,
+        connect=False,
+    )
+
     if conn.database_names():
         info = conn.server_info()
     return info
@@ -21,21 +27,19 @@ def run(seed):
 
 def callback(result):
     seed = result['seed']
-    data = result['data']
-    exception = result['exception']
+    if data := result['data']:
+        exception = result['exception']
 
-    if data:
         version = data.get('version', '') if data else None
 
-        print('seed: "{}", version: "{}", exception: "{}"'
-              .format(seed, version, exception))
+        print(f'seed: "{seed}", version: "{version}", exception: "{exception}"')
 
 
 
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        print('Usage: python {} <seed>'.format(sys.argv[0]))
+        print(f'Usage: python {sys.argv[0]} <seed>')
         sys.exit()
 
     callback(dict(seed=sys.argv[1].strip(),

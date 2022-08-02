@@ -67,14 +67,12 @@ def split_file_by_linenum(filename, linenum_of_perfile=30*10**6):
 def split_file_by_filenum(filename, filenum):
     """ Split one file into serval files with a number of files """
     if filenum <= 1:
-        filenames = [filename]
-    else:
-        linenum = count_file_linenum(filename)
-        if linenum < filenum:
-            raise OptException('proc_num more than line number of seed file')
-        linenum_of_perfile = int(math.ceil(linenum / float(filenum)))
-        filenames = split_file_by_linenum(filename, linenum_of_perfile)
-    return filenames
+        return [filename]
+    linenum = count_file_linenum(filename)
+    if linenum < filenum:
+        raise OptException('proc_num more than line number of seed file')
+    linenum_of_perfile = int(math.ceil(linenum / float(filenum)))
+    return split_file_by_linenum(filename, linenum_of_perfile)
 
 
 class OptException(Exception):
@@ -167,8 +165,7 @@ class ConsoleMonitor(object):
 
     def build_progress_screen(self):
         c_rows = max(self.config.proc_num + 2, 6)
-        c_columns = (40 if self.stdscr_size[1] / 2 < 40
-                     else self.stdscr_size[1] / 2)
+        c_columns = 40 if self.stdscr_size[1] < 80 else self.stdscr_size[1] / 2
         c_rows, c_columns = int(c_rows), int(c_columns)
         self.pgsscr_size = (c_rows, c_columns)
         self.pgsscr.resize(*self.pgsscr_size)
@@ -188,17 +185,16 @@ class ConsoleMonitor(object):
 
     def build_status_screen(self):
         c_rows = max(self.config.proc_num + 2, 6)
-        c_columns = (40 if self.stdscr_size[1] / 2 < 40
-                     else self.stdscr_size[1] / 2)
+        c_columns = 40 if self.stdscr_size[1] < 80 else self.stdscr_size[1] / 2
         c_rows, c_columns = int(c_rows), int(c_columns)
         self.cntscr_size = (c_rows, c_columns)
-        self.task_num = sum([v for k, v in self.progress.items()])
+        self.task_num = sum(v for k, v in self.progress.items())
         running_time = time.strftime('%H:%M:%S',
                                      time.gmtime(time.time()-self.start_time))
         self.cntscr.resize(*self.cntscr_size)
-        self.cntscr.addstr(1, 0, 'Total: {}'.format(self.task_total))
-        self.cntscr.addstr(2, 0, 'Current: {}'.format(self.task_num))
-        self.cntscr.addstr(4, 0, 'Running Time: {}'.format(running_time))
+        self.cntscr.addstr(1, 0, f'Total: {self.task_total}')
+        self.cntscr.addstr(2, 0, f'Current: {self.task_num}')
+        self.cntscr.addstr(4, 0, f'Running Time: {running_time}')
         self.cntscr.refresh(0, 0, 0, c_columns, c_rows, c_columns*2)
 
     def build_output_screen(self):
@@ -222,7 +218,7 @@ class ConsoleMonitor(object):
             # o = ('[{}]({}):{}'
             #      .format(time.strftime('%T %d,%B %Y', time.localtime()),
             #              proc_name.strip(), output))
-            o = '{}'.format(output)
+            o = f'{output}'
             without_stream_logger.info(o)
 
             self.contents = self.contents[1:]
@@ -316,7 +312,7 @@ class ProcessTask(object):
         try:
             po.join()
         except (KeyboardInterrupt, SystemExit) as ex:
-            print(str(ex))
+            print(ex)
             po.kill()
 
 
@@ -332,7 +328,7 @@ class Launcher(object):
         config = options.CONFIG
         opts = vars(options)
         opts.pop('CONFIG')
-        opts = dict((k.lower(), v) for k, v in opts.items())
+        opts = {k.lower(): v for k, v in opts.items()}
         self.config.from_keys(opts)
         if config:
             self.config.from_jsonfile(config)
@@ -342,8 +338,7 @@ class Launcher(object):
             if hasattr(self.config, k):
                 value = getattr(self.config, k)
                 if value is None:
-                    raise OptException('{} option required, '
-                                       'use -h for help'.format(k))
+                    raise OptException(f'{k} option required, use -h for help')
 
     def _init_env(self):
         cwd = os.getcwd()
@@ -356,12 +351,12 @@ class Launcher(object):
             self.config.pool_size = int(self.config.pool_size)
             self.config.pool_timeout = int(self.config.pool_timeout)
         except ValueError as ex:
-            raise OptException('wrong option type, "{}"'.format(str(ex)))
+            raise OptException(f'wrong option type, "{str(ex)}"')
 
         if not os.path.exists(seedfile):
-            raise OptException('seed file not exists, {}'.format(seedfile))
+            raise OptException(f'seed file not exists, {seedfile}')
         if not os.path.exists(poc_file):
-            raise OptException('poc file not exists, {}'.format(poc_file))
+            raise OptException(f'poc file not exists, {poc_file}')
 
         if not os.path.exists(task_dir):
             os.makedirs(task_dir)
@@ -459,10 +454,10 @@ class Launcher(object):
                 while not progress_queue.empty():
                     proc_name, count, task_total = progress_queue.get()
                     progress[proc_name] = count
-                    task_num = sum([v for k, v in progress.items()])
+                    task_num = sum(v for k, v in progress.items())
                 while not output_queue.empty():
                     proc_name, output = output_queue.get()
-                    with_stream_logger.info('{}'.format(output))
+                    with_stream_logger.info(f'{output}')
 
                 if task_num == task_total:
                     for _ in processes:

@@ -13,7 +13,7 @@ def run(seed):
     """
 
     name, age = seed.split(',')
-    return 'Hello World! {}, {}'.format(seed, int(age))
+    return f'Hello World! {seed}, {int(age)}'
 
 
 def callback(result):
@@ -41,6 +41,5 @@ def callback(result):
     seed = result['seed']
     data = result['data']
     exception = result['exception']
-    time.sleep(random.random() * random.random() / 50)
-    print('seed: "{}", data: "{}", exception: "{}"'
-          .format(seed, data, exception))
+    time.sleep(random.random()**2 / 50)
+    print(f'seed: "{seed}", data: "{data}", exception: "{exception}"')

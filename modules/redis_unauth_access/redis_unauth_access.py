@@ -7,28 +7,28 @@ def run(seed):
     except ValueError as ex:
         ip, port = seed, 6379
 
-    r = redis.Redis(ip, int(port), socket_connect_timeout=5)
+    r = redis.Redis(ip, port, socket_connect_timeout=5)
     info = r.info()
     return info
 
 
 def callback(result):
     seed = result['seed']
-    data = result['data']
-    exception = result['exception']
+    if data := result['data']:
+        exception = result['exception']
 
-    if data:
         version = data.get('redis_version', '') if data else None
         os = data.get('os', '') if data else None
 
-        print('seed: "{}", version: "{}", os: "{}", exception: "{}"'
-              .format(seed, version, os, exception))
+        print(
+            f'seed: "{seed}", version: "{version}", os: "{os}", exception: "{exception}"'
+        )
 
 
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        print('Usage: python {} <seed>'.format(sys.argv[0]))
+        print(f'Usage: python {sys.argv[0]} <seed>')
         sys.exit()
 
     callback(dict(seed=sys.argv[1].strip(),
